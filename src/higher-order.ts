@@ -11,7 +11,5 @@ type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respo
  * const res = await fetchWithRetry('https://api.example.com/data')
  */
 export function withRetry(fn: FetchLike, retryOptions?: RetryOptions): FetchLike {
-  // fn parameter kept for API compatibility — fetchBackoff uses global fetch internally
-  void fn
-  return (input, init = {}) => fetchBackoff(input, { ...init, retry: retryOptions })
+  return (input, init = {}) => fetchBackoff(input, { ...init, retry: retryOptions, fetchFn: fn })
 }

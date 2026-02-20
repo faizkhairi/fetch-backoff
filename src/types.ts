@@ -19,6 +19,8 @@ export interface RetryOptions {
 
 export interface FetchBackoffOptions extends RequestInit {
   retry?: RetryOptions
+  /** Custom fetch implementation. Defaults to global fetch. Useful for testing or `withRetry`. */
+  fetchFn?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 }
 
 export interface ClientOptions {

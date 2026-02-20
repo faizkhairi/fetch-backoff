@@ -17,7 +17,7 @@ export async function fetchBackoff(
   input: RequestInfo | URL,
   options: FetchBackoffOptions = {}
 ): Promise<Response> {
-  const { retry: retryOpts, ...fetchOptions } = options
+  const { retry: retryOpts, fetchFn = fetch, ...fetchOptions } = options
   const resolved = resolveOptions(retryOpts)
 
   let lastResponse: Response | null = null
@@ -49,7 +49,7 @@ export async function fetchBackoff(
     }
 
     try {
-      const response = await fetch(input, { ...fetchOptions, signal })
+      const response = await fetchFn(input, { ...fetchOptions, signal })
       timeoutHandle?.clear()
 
       if (!shouldRetry(response.status, resolved.retryOn) || attempt >= resolved.attempts) {
