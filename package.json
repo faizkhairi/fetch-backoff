@@ -1,0 +1,39 @@
+{
+  "name": "fetch-backoff",
+  "version": "0.1.0",
+  "description": "Zero-dependency fetch wrapper with configurable retry, exponential backoff, jitter, 202-polling, and circuit timeout",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["fetch", "retry", "backoff", "exponential", "jitter", "http", "resilience", "202", "polling"],
+  "author": "faizkhairi <ifaizkhairi@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/faizkhairi/fetch-backoff.git"
+  },
+  "homepage": "https://github.com/faizkhairi/fetch-backoff#readme",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  }
+}
