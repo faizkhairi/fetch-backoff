@@ -72,11 +72,18 @@ const repos = await response.json()
 
 ### `withRetry` — Higher-order wrapper
 
+Wraps any fetch-compatible function with retry logic. Useful for injecting a custom or mock fetch:
+
 ```typescript
 import { withRetry } from 'fetch-backoff'
 
+// Wrap the global fetch
 const fetchWithRetry = withRetry(fetch, { attempts: 3 })
 const response = await fetchWithRetry('https://api.example.com/data')
+
+// Wrap a custom fetch (e.g. for testing)
+const mockFetch = async (input, init) => new Response('ok')
+const wrappedMock = withRetry(mockFetch, { attempts: 2, retryOn: [500] })
 ```
 
 ## API
@@ -92,6 +99,7 @@ const response = await fetchWithRetry('https://api.example.com/data')
 | `retry.retryOn` | `number[]` | `[429, 500, 502, 503, 504]` | HTTP status codes to retry |
 | `retry.timeout` | `number` | `undefined` | Per-request timeout in ms |
 | `retry.onRetry` | `function` | `undefined` | Called before each retry |
+| `fetchFn` | `function` | `fetch` | Custom fetch implementation (injected by `withRetry`, useful for testing) |
 
 All standard `fetch` options (method, headers, body, signal, etc.) are passed through unchanged.
 

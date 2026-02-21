@@ -1,6 +1,6 @@
 {
   "name": "fetch-backoff",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Zero-dependency fetch wrapper with configurable retry, exponential backoff, jitter, 202-polling, and circuit timeout",
   "type": "module",
   "main": "./dist/index.cjs",
