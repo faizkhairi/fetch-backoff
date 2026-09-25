@@ -15,6 +15,14 @@ export interface RetryOptions {
   timeout?: number
   /** Called before each retry attempt */
   onRetry?: (attempt: number, response: Response | null, error: Error | null) => void
+  /**
+   * By default only idempotent methods (GET, HEAD, OPTIONS, PUT, DELETE,
+   * TRACE, per RFC 9110) are retried, since retrying a non-idempotent
+   * method (POST, PATCH) on a failed response or network error risks
+   * duplicating side effects. Set this to `true` to opt in to retrying
+   * POST/PATCH requests too. Default: false
+   */
+  retryNonIdempotent?: boolean
 }
 
 export interface FetchBackoffOptions extends RequestInit {
@@ -38,4 +46,5 @@ export interface ResolvedRetryOptions {
   retryOn: number[]
   timeout: number | undefined
   onRetry: ((attempt: number, response: Response | null, error: Error | null) => void) | undefined
+  retryNonIdempotent: boolean
 }

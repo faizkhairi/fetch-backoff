@@ -1,5 +1,5 @@
 import type { FetchBackoffOptions } from './types.js'
-import { resolveOptions, shouldRetry, createTimeoutSignal } from './utils.js'
+import { resolveOptions, shouldRetry, createTimeoutSignal, resolveMethod, isIdempotentMethod } from './utils.js'
 import { calculateDelay, sleep } from './backoff.js'
 
 /**
@@ -19,6 +19,12 @@ export async function fetchBackoff(
 ): Promise<Response> {
   const { retry: retryOpts, fetchFn = fetch, ...fetchOptions } = options
   const resolved = resolveOptions(retryOpts)
+
+  // Only idempotent methods are retried by default (RFC 9110: GET, HEAD,
+  // OPTIONS, PUT, DELETE, TRACE), since retrying POST/PATCH on a failed
+  // response or network error risks duplicating side effects.
+  const method = resolveMethod(input, fetchOptions)
+  const canRetry = resolved.retryNonIdempotent || isIdempotentMethod(method)
 
   let lastResponse: Response | null = null
   let lastError: Error | null = null
@@ -52,7 +58,7 @@ export async function fetchBackoff(
       const response = await fetchFn(input, { ...fetchOptions, signal })
       timeoutHandle?.clear()
 
-      if (!shouldRetry(response.status, resolved.retryOn) || attempt >= resolved.attempts) {
+      if (!canRetry || !shouldRetry(response.status, resolved.retryOn) || attempt >= resolved.attempts) {
         return response
       }
 
@@ -63,7 +69,7 @@ export async function fetchBackoff(
       lastError = error instanceof Error ? error : new Error(String(error))
       lastResponse = null
 
-      if (attempt >= resolved.attempts) {
+      if (!canRetry || attempt >= resolved.attempts) {
         throw lastError
       }
     }

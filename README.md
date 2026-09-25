@@ -99,6 +99,7 @@ const wrappedMock = withRetry(mockFetch, { attempts: 2, retryOn: [500] })
 | `retry.retryOn` | `number[]` | `[429, 500, 502, 503, 504]` | HTTP status codes to retry |
 | `retry.timeout` | `number` | `undefined` | Per-request timeout in ms |
 | `retry.onRetry` | `function` | `undefined` | Called before each retry |
+| `retry.retryNonIdempotent` | `boolean` | `false` | Allow retrying non-idempotent methods (POST, PATCH). See "Idempotency" below |
 | `fetchFn` | `function` | `fetch` | Custom fetch implementation (injected by `withRetry`, useful for testing) |
 
 All standard `fetch` options (method, headers, body, signal, etc.) are passed through unchanged.
@@ -118,6 +119,30 @@ With `jitter: true`, each delay is randomized to `[delay/2, delay]` to prevent t
 - **Retryable status codes**: Returns final response after exhausting attempts (caller decides what to do)
 - **Network/timeout errors**: Throws `Error` after exhausting attempts
 - **Non-retryable status codes** (e.g. 404): Returns immediately, no retry
+
+### Idempotency
+
+By default, only idempotent HTTP methods are retried on a retryable status
+code or a network error: `GET`, `HEAD`, `OPTIONS`, `PUT`, `DELETE`, `TRACE`
+(per [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2)).
+`POST` and `PATCH` requests are returned/thrown on the first attempt without
+retrying, because retrying them after a failure (a 500 that the server
+actually processed, or a network error where the request may have reached
+the server) risks duplicating the side effect, e.g. creating a resource
+twice or double-charging a payment.
+
+The method is read from `options.method` if set, otherwise from a `Request`
+input's own method, otherwise it defaults to `GET`.
+
+If your POST/PATCH endpoint is genuinely idempotent (e.g. it accepts an
+idempotency key, or the operation is naturally safe to repeat), opt in with:
+
+```typescript
+await fetchBackoff('https://api.example.com/orders', {
+  method: 'POST',
+  retry: { retryNonIdempotent: true },
+})
+```
 
 ## License
 

@@ -139,4 +139,110 @@ describe('fetchBackoff()', () => {
     expect(response.status).toBe(200)
     expect(fetch).toHaveBeenCalledTimes(2)
   })
+
+  describe('idempotency-aware retry', () => {
+    it.each(['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE', 'TRACE'])(
+      'retries a %s request on 500 by default',
+      async (method) => {
+        global.fetch = vi.fn()
+          .mockResolvedValueOnce(new Response('error', { status: 500 }))
+          .mockResolvedValueOnce(new Response('ok', { status: 200 }))
+
+        const promise = fetchBackoff('https://example.com', {
+          method,
+          retry: { delay: 50, backoff: 'fixed', jitter: false }
+        })
+        await vi.runAllTimersAsync()
+
+        const response = await promise
+        expect(response.status).toBe(200)
+        expect(fetch).toHaveBeenCalledTimes(2)
+      }
+    )
+
+    it.each(['POST', 'PATCH'])(
+      'does not retry a %s request on 500 by default (returns the failed response)',
+      async (method) => {
+        global.fetch = vi.fn().mockResolvedValue(new Response('error', { status: 500 }))
+
+        const response = await fetchBackoff('https://example.com', {
+          method,
+          retry: { delay: 50, backoff: 'fixed', jitter: false }
+        })
+
+        expect(response.status).toBe(500)
+        expect(fetch).toHaveBeenCalledTimes(1)
+      }
+    )
+
+    it('retries a POST request on 500 when retryNonIdempotent is true', async () => {
+      global.fetch = vi.fn()
+        .mockResolvedValueOnce(new Response('error', { status: 500 }))
+        .mockResolvedValueOnce(new Response('ok', { status: 200 }))
+
+      const promise = fetchBackoff('https://example.com', {
+        method: 'POST',
+        retry: { delay: 50, backoff: 'fixed', jitter: false, retryNonIdempotent: true }
+      })
+      await vi.runAllTimersAsync()
+
+      const response = await promise
+      expect(response.status).toBe(200)
+      expect(fetch).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not retry a POST request on network error by default', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new TypeError('network failure'))
+
+      const promise = fetchBackoff('https://example.com', {
+        method: 'POST',
+        retry: { attempts: 2, delay: 50, backoff: 'fixed', jitter: false }
+      })
+      promise.catch(() => {})
+      await vi.runAllTimersAsync()
+
+      await expect(promise).rejects.toThrow('network failure')
+      expect(fetch).toHaveBeenCalledTimes(1)
+    })
+
+    it('retries a POST request on network error when retryNonIdempotent is true', async () => {
+      global.fetch = vi.fn()
+        .mockRejectedValueOnce(new TypeError('network failure'))
+        .mockResolvedValueOnce(new Response('ok', { status: 200 }))
+
+      const promise = fetchBackoff('https://example.com', {
+        method: 'POST',
+        retry: { attempts: 2, delay: 50, backoff: 'fixed', jitter: false, retryNonIdempotent: true }
+      })
+      await vi.runAllTimersAsync()
+
+      const response = await promise
+      expect(response.status).toBe(200)
+      expect(fetch).toHaveBeenCalledTimes(2)
+    })
+
+    it('derives the method from a Request input when no init.method is given', async () => {
+      global.fetch = vi.fn().mockResolvedValue(new Response('error', { status: 500 }))
+
+      const request = new Request('https://example.com', { method: 'POST' })
+      const response = await fetchBackoff(request, {
+        retry: { delay: 50, backoff: 'fixed', jitter: false }
+      })
+
+      expect(response.status).toBe(500)
+      expect(fetch).toHaveBeenCalledTimes(1)
+    })
+
+    it('is case-insensitive when reading the method', async () => {
+      global.fetch = vi.fn().mockResolvedValue(new Response('error', { status: 500 }))
+
+      const response = await fetchBackoff('https://example.com', {
+        method: 'post',
+        retry: { delay: 50, backoff: 'fixed', jitter: false }
+      })
+
+      expect(response.status).toBe(500)
+      expect(fetch).toHaveBeenCalledTimes(1)
+    })
+  })
 })

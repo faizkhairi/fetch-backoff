@@ -5,7 +5,7 @@ import type { BackoffStrategy } from './types.js'
  * @param strategy - Backoff strategy to use
  * @param baseDelay - Base delay in ms
  * @param attempt - 1-indexed attempt number (first retry = 1)
- * @param jitter - Whether to add full jitter (randomizes between [delay/2, delay])
+ * @param jitter - Whether to add equal jitter (randomizes between [delay/2, delay])
  */
 export function calculateDelay(
   strategy: BackoffStrategy,
@@ -29,7 +29,7 @@ export function calculateDelay(
   }
 
   if (jitter) {
-    // Full jitter: uniform random in [delay/2, delay]
+    // Equal jitter: uniform random in [delay/2, delay]
     delay = delay * 0.5 + Math.random() * delay * 0.5
   }
 
